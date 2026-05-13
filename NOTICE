@@ -1,0 +1,77 @@
+vbcd-tooling — License notices
+==============================
+
+This pack assembles authored content with verbatim copies of third-party skills.
+The composition is:
+
+Authored content (MIT License — see LICENSE)
+---------------------------------------------
+
+The following substrate templates and skills are authored by this pack and
+licensed under the MIT License (see LICENSE at repo root):
+
+  Substrate templates:
+    AGENTS.md
+    CLAUDE.md
+    LEDGER.md
+    CONTEXT.md
+    plans/AUDIT_SCHEMA.md
+
+  Operator-facing guidebook:
+    README.md
+
+  Authored skills:
+    skills/init/setup-pre-commit/
+    skills/build/plan-review/
+    skills/ship/audit/
+    skills/ship/deploy-and-rollback/
+    skills/ship/handoff/
+    skills/maintain/ledger-capture/
+    skills/maintain/pitfall-graduate/
+    skills/maintain/ledger-lint/
+
+Third-party content — Matt Pocock (MIT License)
+------------------------------------------------
+
+The following skills are verbatim copies of skills from
+https://github.com/mattpocock/skills, MIT-licensed.
+Attribution headers preserved in each SKILL.md frontmatter comment:
+
+  skills/init/grill-with-docs/   (+ CONTEXT-FORMAT.md, ADR-FORMAT.md sidecars)
+  skills/build/tdd/              (+ 5 supporting docs)
+  skills/build/diagnose/
+  skills/build/to-prd/           (+ conventions.md sidecar — authored)
+  skills/build/zoom-out/
+  skills/build/to-issues/        (+ conventions.md sidecar — authored)
+
+The conventions.md sidecars in /to-prd and /to-issues are authored
+additions to the upstream skills and fall under this pack's MIT License.
+
+Third-party content — Anthropic (Apache License 2.0)
+-----------------------------------------------------
+
+The following skills are verbatim copies of skills from
+https://github.com/anthropics/skills, licensed under Apache License 2.0.
+Attribution headers preserved in each SKILL.md frontmatter comment.
+The Apache 2.0 license text is preserved alongside each skill in
+LICENSE.txt within the skill's directory:
+
+  skills/build/frontend-design/       (+ LICENSE.txt)
+  skills/build/webapp-testing/        (+ LICENSE.txt; scripts/, examples/ sidecars)
+  skills/maintain/skill-creator/      (+ LICENSE.txt; scripts/, agents/, assets/, eval-viewer/, references/ sidecars)
+
+Pack calibrations
+-----------------
+
+Where this pack adds operator-stack-specific calibrations to copied skills
+(denoted as `## Pack calibration` sections at the end of upstream SKILL.md
+bodies), those additions are authored content under this pack's MIT License,
+clearly demarcated from the upstream verbatim body.
+
+Provenance
+----------
+
+Pack iteration substrate lives in the maintainer's wiki (private Obsidian vault).
+This repository is a release-point mirror; sync direction is wiki → repo, manual.
+See README.md for usage; pack-development discipline (MAINTAINING.md, GRILLING.md,
+FOLLOWUPS.md) stays in the wiki by design.
