@@ -1,0 +1,56 @@
+# Codex configuration shipped by the dual-vendor pack (2026-05-19 restructure)
+#
+# This file is the Codex-side equivalent of .claude/settings.json (Claude Code).
+# Edit per-vendor — sync-vendor-files does NOT mirror these two files (different formats).
+#
+# Reference: https://developers.openai.com/codex/config-reference
+
+# === Hooks ===
+# Stop-hook auto-invokes /ledger-capture at session end to prompt for capturing
+# any session-spanning lessons. Silent if nothing captureable.
+# Mechanism for AGENTS.md §8's proactive capture-surface rule.
+[[hooks.Stop]]
+command = "codex"
+args = ["-p", "/ledger-capture --auto"]
+timeout = 60
+
+# === Filesystem permissions (Codex equivalent of CC's .claudeignore) ===
+# Deny-read on generated files / build artifacts / third-party code / lockfiles / env / OS metadata.
+# Operator-leverage per Applied AI's large-codebases post: Codex burns context opening generated files.
+[permissions.default.filesystem]
+# Dependencies
+"node_modules/**" = "none"
+
+# Build artifacts
+".next/**" = "none"
+".vercel/**" = "none"
+"dist/**" = "none"
+"build/**" = "none"
+"out/**" = "none"
+".turbo/**" = "none"
+".cache/**" = "none"
+"*.tsbuildinfo" = "none"
+
+# Test coverage
+"coverage/**" = "none"
+
+# Lockfiles
+"pnpm-lock.yaml" = "none"
+"package-lock.json" = "none"
+"yarn.lock" = "none"
+
+# Logs
+"*.log" = "none"
+"npm-debug.log*" = "none"
+"yarn-debug.log*" = "none"
+"yarn-error.log*" = "none"
+"pnpm-debug.log*" = "none"
+
+# Environment / secrets (Codex doesn't yet support negation like .claudeignore's `!.env.example` —
+# operator can override .env.example via personal config if needed)
+".env" = "none"
+".env.*" = "none"
+
+# OS metadata
+".DS_Store" = "none"
+"Thumbs.db" = "none"

@@ -8,7 +8,9 @@
 
 ## Session start
 
-`@LEDGER.md` and `@docs/STATUS.md` above are auto-loaded by the harness. On first action, also skim `CHANGELOG.md` top three entries for the most recent changes.
+On session start, read `@LEDGER.md` and `@docs/STATUS.md` for current project context. (On Claude Code, the `@`-syntax above auto-loads these into context. On Codex, read them with your file tool — Codex doesn't expand `@`-imports the same way.) On first action, also skim `CHANGELOG.md` top three entries for the most recent changes.
+
+**Dual-vendor operation**: if this project is run with both Claude Code AND Codex, see the wiki's [[../sources/nateherk-cc-projects-in-codex|Nate Herk *CC Projects in Codex in 5 Mins*]] for the canonical recipe — file-structure cheat sheet + 3-layer mental model (shared knowledge / workflows-skills / tool-specific config) + critical detail that Codex sub-agents don't auto-invoke (CC ones do). Pack ships dual-vendor by design: `CLAUDE.md` + `AGENTS.md` as full duplicates; `.claude/skills/` + `.agents/skills/` as parallel trees. Use `/sync-vendor-files` skill to mirror edits.
 
 ## Reference map
 
@@ -136,6 +138,13 @@ If you correct Claude (or Codex) once, the lesson lives in your head. If you wri
 - **Session-spanning lessons / invariants / open investigations** → `/ledger-capture` writes to `LEDGER.md`.
 - **Project-domain decisions** → `/grill-with-docs` writes to `CONTEXT.md` + `docs/adr/`, plus pack-level closing prompts for MANUAL_TESTS / LEDGER prefs / AUDIT_SCHEMA dims at grill-end (per `/grill-with-docs` SKILL.md Pack calibration).
 - **Recurring workflow** → after the third repeat, author it as a skill via `/skill-creator`.
+
+**Two memory layers, different jobs.** As of May 2026, both vendors ship Claude-managed auto-memory alongside this pack's operator-curated `LEDGER.md`. They are complementary, not competing — use both for their respective purposes:
+
+- **Auto-memory** (CC: `~/.claude/projects/<project>/memory/`; Codex: `Settings > Personalization > Memories` + per-thread `Chronicle`) — **Claude/Codex-managed**, lazy-loaded, fire-and-forget. The agent self-decides what's worth keeping (preferences, conventions, "don't suggest X again"). Operator doesn't curate. Used for **high-volume, low-stakes** lessons that don't need human review.
+- **`LEDGER.md`** (this pack) — **operator-curated, git-tracked, team-shareable**. Used for: *named incidents with lessons*, *design rationales not in any plan doc*, *load-bearing invariants*, *open investigations*. Raise the bar: if a lesson doesn't need human review or team visibility, let auto-memory have it — don't double-bookkeep.
+
+Practical heuristic when something captureable surfaces: *"Will I (or a teammate) want to see this in a git diff later?"* If yes → `/ledger-capture` to LEDGER.md. If no → let auto-memory absorb it.
 
 **Proactive capture-surface rule.** When you encounter content during work that matches a LEDGER category — a generalization from an incident, a design rationale not in any plan doc, a non-obvious load-bearing invariant, an unanswered question worth tracking — surface a closing prompt: *"This looks captureable per LEDGER — invoke `/ledger-capture` now?"* Don't auto-capture; the operator decides. Surface sparingly — quality over quantity; not every casual observation is captureable. The rule applies during ambient coding work AND at the end of skills whose output predictably produces capture-worthy content (notably `/diagnose`, after a regression-test-plus-fix lands: surface *"This bug taught us [X]. Capture as a LEDGER lesson?"*). `/audit` Step 7, `/handoff` Step 4, and `/grill-with-docs`'s multi-artifact closing prompts already operationalize this at their own protocol ends.
 

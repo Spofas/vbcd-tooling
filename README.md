@@ -48,9 +48,17 @@ The skill files themselves (in `skills/<name>/SKILL.md`) are the *agent-facing* 
 > - **Single pre-commit stage.** No pre-commit + pre-push split. Solo workflows commit+push atomically; splitting doubles friction without value.
 > - **Skills only when leverage is real.** "Could be a skill" isn't enough; the test is "does this automate something the operator would otherwise skip, forget, or do badly?" If no, it's not a skill.
 
-> **Agent-agnostic by design.** Every artifact in this pack is portable between Claude Code, Codex, and reasonable third-party harnesses that adopt either CLAUDE.md or AGENTS.md as their substrate convention. Canonical content lives in `AGENTS.md` (the cross-vendor name); `CLAUDE.md` is a one-line shim that imports it. Skills live in `.claude/skills/` (Claude Code) and/or `.agents/skills/` (Codex) — pick one or both. Switching agents later requires zero migration.
+> **Dual-vendor by design (2026-05-19 restructure).** Every artifact in this pack ships in **both vendor-native locations** so that Claude Code and Codex each load their own canonical files without import-resolution overhead:
+>
+> - **Substrate**: `AGENTS.md` and `CLAUDE.md` are **full duplicates with identical content** (was: 1-line `@AGENTS.md` shim — superseded). AGENTS.md is the canonical for pack-maintainer edits; CLAUDE.md mirrors it.
+> - **Skills**: ship in **both** `.claude/skills/<bucket>/<name>/SKILL.md` (Claude Code) AND `.agents/skills/<bucket>/<name>/SKILL.md` (Codex) — SKILL.md format is **identical cross-vendor** per the Agent Skills open standard.
+> - **Vendor-specific configuration**: `.claude/settings.json` (CC, JSON) + `.codex/config.toml` (Codex, TOML). Hook configs / ignore patterns differ in format but achieve equivalent function.
+> - **Ignore patterns**: `.claudeignore` (CC, path-globs) + `[permissions.default.filesystem]` entries in `.codex/config.toml` (Codex, deny-read semantics).
+> - **Maintaining duplicates**: use the `/sync-vendor-files` skill (in `.claude/skills/maintain/` AND `.agents/skills/maintain/`) — invokes a Python script that mirrors AGENTS.md ↔ CLAUDE.md and `.claude/skills/` ↔ `.agents/skills/` with mtime-driven direction. Vendor-specific config files are NOT mirrored (different formats).
+>
+> Why duplicate instead of using imports? Per cross-vendor research: each agent loads its own canonical file natively; the prior shim approach made CC resolve an `@`-import on every session (asymmetric vs Codex's direct AGENTS.md load). Duplication is the agent-native path. Mechanism (the `/sync-vendor-files` skill) handles the maintenance cost.
 
-**What it is.** A curated set of 16 agent skills + 2 critical complements (a pre-commit hook installer + an AGENTS.md substrate with a CLAUDE.md shim) that collectively cover the full webapp lifecycle (init → design → build → debug → review → deploy → maintain). Skills are portable to either Claude Code or Codex.
+**What it is.** A curated set of 16 agent skills + 2 critical complements (a pre-commit hook installer + an AGENTS.md substrate with a CLAUDE.md byte-identical duplicate) that collectively cover the full webapp lifecycle (init → design → build → debug → review → deploy → maintain). Skills are portable to either Claude Code or Codex — pack ships them in both `.claude/skills/` AND `.agents/skills/` parallel trees.
 
 **When to use it.** When you're starting a new vibecoding webapp project from scratch (greenfield), OR when an existing project lacks structured operator-discipline tooling. The pack is heavier than nothing but lighter than authoring substrate per project; the templates persist while content is project-specific.
 
@@ -230,7 +238,7 @@ Two categories of pack files: **files you copy into your project** (substrate te
 | File | Purpose | Copy target |
 |---|---|---|
 | `AGENTS.md` | 9-section substrate template (canonical; agent-agnostic) | Project root |
-| `CLAUDE.md` | 1-line shim: `@AGENTS.md` (so Claude Code reads the canonical) | Project root |
+| `CLAUDE.md` | Full duplicate of AGENTS.md (CC loads natively; was 1-line shim until 2026-05-19) | Project root |
 | `LEDGER.md` | 5-section session-spanning-knowledge skeleton | Project root |
 | `CONTEXT.md` | Domain glossary scaffold (populated by `/grill-with-docs`) | Project root |
 | `AUDIT_SCHEMA.md` | 9-dimension audit framework | `plans/AUDIT_SCHEMA.md` |
@@ -468,17 +476,21 @@ See `.claude/skills/maintain/pitfall-graduate/SKILL.md` for `--auto` vs manual m
 
 See `.claude/skills/maintain/ledger-lint/SKILL.md`.
 
-### 4.10 Meta — `/skill-creator`
+### 4.10 Meta — `/skill-creator` (install-on-demand from upstream)
 
-**What:** Anthropic-copy — eval-driven skill-authoring meta-skill. Capture intent → draft → eval (parallel runs with-skill vs. baseline; grader subagent; HTML viewer with feedback round-trip) → description optimization (train/val splits; trigger-rate measurement; ≤5 iterations). Ships with full sidecar set: `scripts/` (8 Python files — aggregation, eval running, description optimization, packaging), `agents/` (3 subagent prompts), `assets/eval_review.html`, `eval-viewer/` (Python + HTML viewer), `references/schemas.md`.
+**What:** Anthropic-authored — eval-driven skill-authoring meta-skill. Capture intent → draft → eval (parallel runs with-skill vs. baseline; grader subagent; HTML viewer) → description optimization (train/val splits; trigger-rate measurement; ≤5 iterations). Ships with full sidecar set (8 Python scripts + 3 subagent prompts + HTML eval viewer + reference schemas).
 
-**When:** third-repeat instruction surfaces; existing skill's trigger accuracy is poor.
+**Not in pack baseline (2026-05-19 restructure).** Removed because:
+1. **Phase 3+ deferral** — install after 5+ custom skills exist; earlier installation is heavy machinery for first-skill authoring (the manual draft→test→iterate loop is sufficient for early skills)
+2. **507-line upstream `SKILL.md`** — 7 lines over Anthropic's own newly-stated 500-line cap (per the cc-skills course, May 2026); shipping it in pack baseline propagates an upstream cap-violation
+3. **Pack discipline (Thariq endorsement)** — vendor-canonical *"don't pre-bake skills"* stance (per Thariq Shihipar's *HTML effectiveness* essay, May 2026) applies — install only when the recurring need surfaces
 
-**Phase 3+ deferral.** Install after 5+ custom skills exist. Earlier installation is not harmful, but the eval machinery is heavy for first-skill authoring — the manual loop (draft → test → iterate) is sufficient for early skills.
+**Install on demand** when you're authoring your 5+th custom skill:
+- Claude Code: `/plugin marketplace add anthropics/skills` then `/plugin install skill-creator@anthropics/skills`
+- Codex: install from the `anthropics/skills` source via Codex Skill Installer
+- Manual: clone `github.com/anthropics/skills/tree/main/skill-creator` and copy `SKILL.md` + sidecars into `.claude/skills/maintain/skill-creator/` AND `.agents/skills/maintain/skill-creator/`
 
-**Multi-vendor caveat (Q22).** Claude-Code-biased — `claude -p` subprocess + subagent orchestration semantics are Claude Code-specific. Codex operators can use the manual loop; skip Description Optimization. See Pack calibration in SKILL.md for the full caveat list.
-
-See `.claude/skills/maintain/skill-creator/SKILL.md` for Anthropic's body + Pack calibration (multi-vendor caveat + Phase 3+ rationale).
+**Multi-vendor caveat.** Claude-Code-biased — `claude -p` subprocess + subagent orchestration semantics are Claude Code-specific. Codex operators can use the manual loop; skip Description Optimization.
 
 ## 5. The two complements
 
@@ -532,17 +544,17 @@ After the skill runs, every commit fires the hook automatically.
 >
 > If missing, the hook surfaces a warning and skips the secret scan — but the commit proceeds. The operator must install for full Tier 1 coverage.
 
-### Complement B — AGENTS.md substrate + CLAUDE.md shim (always-loaded)
+### Complement B — AGENTS.md substrate + CLAUDE.md duplicate (always-loaded)
 
-**What:** the 9-section behavioral substrate the agent reads on every session. Lives canonically in `AGENTS.md`. `CLAUDE.md` ships as a 1-line shim (`@AGENTS.md`) so Claude Code lazy-loads the same content. Sections: 4 from forrestchang's CLAUDE.md (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) + 1 section combining the operator's chunked-output mechanics + 3 wiki-derived (Build Shared Language, Protect Trunk Vibe Leaves, Accumulate Don't Restart) + 1 vendor-lockin avoidance (§9, added 2026-05-13). Plus a reference map, doc-update discipline, project-rules, project-principles placeholder, git-conventions, common-pitfalls placeholder.
+**What:** the 9-section behavioral substrate the agent reads on every session. Lives canonically in `AGENTS.md`. **`CLAUDE.md` ships as a byte-identical full duplicate** of AGENTS.md so Claude Code loads it natively without import resolution (was a 1-line `@AGENTS.md` shim until the 2026-05-19 dual-vendor restructure — superseded for agent-native loading reasons). Sections: 4 from forrestchang's CLAUDE.md (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) + 1 section combining the operator's chunked-output mechanics + 3 wiki-derived (Build Shared Language, Protect Trunk Vibe Leaves, Accumulate Don't Restart) + 1 vendor-lockin avoidance (§9, added 2026-05-13). Plus a reference map, doc-update discipline, project-rules, project-principles placeholder, git-conventions, common-pitfalls placeholder.
 
-**When:** at project init, exactly once. AGENTS.md grows organically as the project produces gotchas, principles, etc. The CLAUDE.md shim never changes (it's a single line).
+**When:** at project init, exactly once. AGENTS.md grows organically as the project produces gotchas, principles, etc. **CLAUDE.md must stay in lockstep** — every AGENTS.md edit needs to mirror to CLAUDE.md. Use `/sync-vendor-files` to mirror after any substrate edit; or tell Claude/Codex *"mirror this change to the other file"*.
 
-**How:** `cp wiki/templates/AGENTS.md ./AGENTS.md` and `cp wiki/templates/CLAUDE.md ./CLAUDE.md`. Symmetric copy — no rename mid-flight, no manual `echo` of the shim. Then run `/grill-with-docs` to populate Project Principles, Quick Reference, Git Conventions, and Common Pitfalls placeholders in AGENTS.md.
+**How:** `cp wiki/templates/AGENTS.md ./AGENTS.md` and `cp wiki/templates/CLAUDE.md ./CLAUDE.md`. Symmetric copy — both files are identical at deploy. Then run `/grill-with-docs` to populate Project Principles, Quick Reference, Git Conventions, and Common Pitfalls placeholders in AGENTS.md. After `/grill-with-docs` writes to AGENTS.md, run `/sync-vendor-files` to mirror the populated content into CLAUDE.md.
 
 **Why:** the substrate is what every session loads. If it's wrong, every session is wrong. If it's right, every session compounds on top of correct context. AGENTS.md is the highest-leverage single artifact in the project. Every other skill in this pack assumes its presence.
 
-> 📌 **Naming note**: Codex eager-loads `AGENTS.md` natively. Claude Code uses the `CLAUDE.md` shim's `@AGENTS.md` import to lazy-load the same content. One source of truth, both agents see it. If you only use one agent, the unused file (the other-vendor's loader path) is harmless to keep — it makes the project portable later. AGENTS.md is the cross-vendor convention; the agent-agnostic principle in §1 is the reason this pack ships canonical-as-AGENTS.md instead of canonical-as-CLAUDE.md.
+> 📌 **Naming note**: Both `AGENTS.md` and `CLAUDE.md` exist as byte-identical duplicates so each agent loads its own native file. Codex eager-loads `AGENTS.md` directly. Claude Code loads `CLAUDE.md` directly (no `@`-import resolution required). AGENTS.md is the **canonical for pack-maintainer edits** (the file you edit when changing substrate); CLAUDE.md is the **mirror** maintained via `/sync-vendor-files`. The agent-agnostic principle in §1 is the reason this pack ships canonical-as-AGENTS.md instead of canonical-as-CLAUDE.md.
 
 ### What's deliberately NOT a Phase 1 complement: CI
 
@@ -589,12 +601,18 @@ Don't deploy all 18 components at once. Stage by **compounding leverage** — ea
 
 Skills that compound the most. Every later skill leans on these.
 
-1. **Copy templates** (~5 min):
+1. **Copy templates** (~5 min). With the 2026-05-19 dual-vendor restructure, the pack ships the END-STATE shape directly — copy the whole `wiki/templates/` tree into your project root and both vendors are configured natively:
    - `wiki/templates/AGENTS.md` → `AGENTS.md` (project root, canonical)
-   - `wiki/templates/CLAUDE.md` → `CLAUDE.md` (project root, 1-line shim that imports `@AGENTS.md`)
+   - `wiki/templates/CLAUDE.md` → `CLAUDE.md` (project root, **full duplicate of AGENTS.md** — identical content; each agent loads its own native file without import-resolution overhead)
    - `wiki/templates/LEDGER.md` → `LEDGER.md` (project root)
-   - `wiki/templates/AUDIT_SCHEMA.md` → `plans/AUDIT_SCHEMA.md`
-   - `wiki/templates/skills/*` → `.claude/skills/` (and/or `.agents/skills/`). The 4 bucket folders (`init/`, `build/`, `ship/`, `maintain/`) carry over — loaders walk recursively for `SKILL.md`.
+   - `wiki/templates/CONTEXT.md` → `CONTEXT.md` (project root)
+   - `wiki/templates/plans/AUDIT_SCHEMA.md` → `plans/AUDIT_SCHEMA.md`
+   - `wiki/templates/.claude/` → `.claude/` (Claude Code vendor dir: `settings.json` hook config + `skills/` tree with all pack skills)
+   - `wiki/templates/.agents/` → `.agents/` (Codex vendor dir: `skills/` mirror — identical SKILL.md content, different load location)
+   - `wiki/templates/.codex/` → `.codex/` (Codex vendor dir: `config.toml` hook + ignore-rule config)
+   - `wiki/templates/.claudeignore` → `.claudeignore` (project root; CC ignore patterns for TS/Node generated files)
+
+   Maintaining the duplicates: edit either side, then run `/sync-vendor-files` to mirror to the other (or tell Claude/Codex *"mirror this change to the other vendor's location"*). The `/sync-vendor-files` skill is in `.claude/skills/maintain/` and `.agents/skills/maintain/`.
 2. **Invoke `/setup-pre-commit`** (~15 min): the skill is in `.claude/skills/` from step 1. It detects the Node project, surfaces the `gitleaks` system-install command, installs devDeps, writes the hook + configs, and adds `package.json` scripts. Optional agent-side guardrails: install `mattpocock/skills` (`npx skills@latest add mattpocock/skills`) and run `/git-guardrails-claude-code`.
 3. **Run `/grill-with-docs`** (~30–60 min): populates AGENTS.md placeholders, LEDGER.md User preferences, CONTEXT.md initial vocabulary, AUDIT_SCHEMA.md dimension checklists, first 1–3 ADRs.
 4. **Verify** `/plan-review` is loaded and works on a sample plan (~5 min): produce a small plan via plan-mode, run `/plan-review`, confirm 6-question walkthrough.

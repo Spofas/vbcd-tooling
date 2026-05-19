@@ -1,0 +1,45 @@
+# Pack-shipped TS/Node ignore patterns (2026-05-19 dual-vendor restructure)
+#
+# Tells Claude Code which paths to exclude from agentic search / file suggestions.
+# Codex-side equivalent: [permissions.default.filesystem] entries in .codex/config.toml
+# These two files are NOT mirrored by /sync-vendor-files (different formats).
+#
+# Reference: Anthropic Applied AI team's large-codebases best-practices post (May 14 2026).
+# Operator-leverage: Claude burns context opening generated files; exclusion is free leverage.
+
+# === Dependencies ===
+node_modules/
+
+# === Build artifacts ===
+.next/
+.vercel/
+dist/
+build/
+out/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# === Test coverage ===
+coverage/
+
+# === Lockfiles (Claude rarely needs to grep these) ===
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# === Logs ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === Environment / secrets ===
+.env
+.env.*
+!.env.example
+
+# === OS metadata ===
+.DS_Store
+Thumbs.db

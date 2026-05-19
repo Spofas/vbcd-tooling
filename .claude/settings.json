@@ -1,0 +1,19 @@
+{
+  "$schema": "https://code.claude.com/docs/en/settings.schema.json",
+  "_pack_note": "Claude Code settings shipped by the dual-vendor pack (2026-05-19 restructure). Codex-side equivalent is .codex/config.toml. Edit per-vendor — sync-vendor-files does NOT mirror these (different formats).",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude",
+            "args": ["-p", "/ledger-capture --auto"],
+            "timeout": 60,
+            "_comment": "On session end, auto-invoke /ledger-capture to prompt for capturing any session-spanning lessons. Silent if nothing captureable. Mechanism for AGENTS.md §8's proactive capture-surface rule."
+          }
+        ]
+      }
+    ]
+  }
+}
